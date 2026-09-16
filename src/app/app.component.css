@@ -1,0 +1,10 @@
+.app-shell {
+  height: 100vh;
+  height: 100dvh;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  overflow: hidden;
+  position: relative;
+  background: var(--color-bg);
+}

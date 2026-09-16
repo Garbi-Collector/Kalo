@@ -1,0 +1,49 @@
+:root {
+  --color-primary: #FF7A1A;
+  --color-primary-dark: #E4630A;
+  --color-primary-light: #FFA556;
+  --color-secondary: #588157;
+  --color-secondary-dark: #3A5A40;
+  --color-bg: #FFF8F0;
+  --color-surface: #FFFFFF;
+  --color-text: #2B2118;
+  --color-text-soft: #6B4226;
+  --color-black: #1A1A1A;
+  --color-success: #4C8C4A;
+  --color-warning: #E0A030;
+  --color-danger: #D9534F;
+  --color-info: #4A90A4;
+
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --shadow-card: 0 8px 24px rgba(107, 66, 38, 0.12);
+  --font-main: 'Segoe UI', Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-main);
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea { user-select: text; -webkit-user-select: text; }
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+}
+
+h1, h2, h3, p { margin: 0; }

@@ -1,0 +1,23 @@
+<div class="pantalla">
+  <div class="header">
+    <img src="assets/Kalo_Pet1.png" alt="Kalo" class="logo-pet" />
+    <h1>Kalo</h1>
+    <p class="subtitulo">Calculá tu IMC y empezá a cuidar tu peso de forma saludable</p>
+  </div>
+
+  <div class="card">
+    <label class="campo">
+      <span>Altura (cm)</span>
+      <input type="number" placeholder="Ej: 170" [(ngModel)]="altura" inputmode="numeric" />
+    </label>
+
+    <label class="campo">
+      <span>Peso (kg)</span>
+      <input type="number" placeholder="Ej: 68" [(ngModel)]="peso" inputmode="decimal" />
+    </label>
+
+    <p class="error" *ngIf="error">{{ error }}</p>
+
+    <button class="boton-principal" (click)="calcular()">Calcular mi IMC</button>
+  </div>
+</div>

@@ -1,0 +1,58 @@
+<div class="pantalla">
+  <div class="topbar">
+    <button class="volver" (click)="volver()">←</button>
+    <h2>Tu resultado</h2>
+  </div>
+
+  <div class="contenido">
+    <div class="card resumen">
+      <p class="etiqueta">Tu IMC es</p>
+      <p class="imc-numero" [style.color]="colorCategoria">{{ imc }}</p>
+      <p class="categoria" [style.color]="colorCategoria">{{ categoria }}</p>
+    </div>
+
+    <div class="card explicacion">
+      <h3>¿Qué es el IMC?</h3>
+      <p>
+        El Índice de Masa Corporal (IMC) relaciona tu peso y tu altura para estimar
+        si tu peso está dentro de un rango considerado saludable. No tiene en cuenta
+        cosas como la masa muscular o la contextura física: es un dato orientativo,
+        no un diagnóstico médico.
+      </p>
+    </div>
+
+    <div class="card condicion">
+      <h3>Tu condición</h3>
+      <p>{{ descripcionCategoria }}</p>
+      <p class="rango-saludable">
+        Para tu altura, el rango saludable es de
+        <strong>{{ pesoMinSaludable }} kg</strong> a <strong>{{ pesoMaxSaludable }} kg</strong>.
+      </p>
+    </div>
+
+    <div class="card objetivo">
+      <h3>¿Cuál es tu objetivo?</h3>
+      <p class="pregunta">¿A qué peso te gustaría llegar?</p>
+
+      <label class="campo">
+        <span>Peso objetivo (kg)</span>
+        <input type="number" placeholder="Ej: 65" [(ngModel)]="pesoObjetivo" inputmode="decimal" />
+      </label>
+
+      <p class="error" *ngIf="errorObjetivo">{{ errorObjetivo }}</p>
+
+      <button class="boton-secundario" (click)="evaluarObjetivo()">Evaluar mi objetivo</button>
+
+      <div class="resultado-objetivo" *ngIf="evaluacion"
+           [class.saludable]="evaluacion.esSaludable"
+           [class.no-saludable]="!evaluacion.esSaludable">
+        <p class="mensaje-objetivo">{{ evaluacion.mensaje }}</p>
+        <div class="detalle-objetivo" *ngIf="evaluacion.direccion !== 'mantener'">
+          {{ evaluacion.direccion === 'bajar' ? 'Necesitás bajar' : 'Necesitás subir' }}
+          <strong>{{ evaluacion.diferenciaKg < 0 ? (evaluacion.diferenciaKg * -1) : evaluacion.diferenciaKg }} kg</strong>
+          ({{ evaluacion.porcentajeCambio }}% de tu peso actual)
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
