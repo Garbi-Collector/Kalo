@@ -1,0 +1,62 @@
+<div class="pantalla">
+  <div class="topbar">
+    <button class="volver" (click)="volver()">←</button>
+    <h2>Tus hábitos</h2>
+  </div>
+
+  <div class="contenido">
+    <div class="card aviso">
+      <p>
+        KALO funciona mejor cuanto más honesto seas con tus hábitos reales.
+        Estos valores son <strong>aproximados</strong>: cada cuerpo es distinto y
+        funciona diferente, así que los resultados de la app pueden no coincidir
+        exactamente con la realidad. Si podés, elegí "Personalizado" y cargá tus
+        propios números para un seguimiento más fiel.
+      </p>
+    </div>
+
+    <div class="card seccion">
+      <h3>¿Cómo comés normalmente?</h3>
+      <div class="opciones">
+        <button
+          *ngFor="let opcion of opcionesComidas"
+          class="opcion"
+          [class.seleccionada]="comidaSeleccionada === opcion.id"
+          (click)="seleccionarComida(opcion.id)"
+        >
+          <span class="opcion-etiqueta">{{ opcion.etiqueta }}</span>
+          <span class="opcion-detalle">{{ opcion.detalle }}</span>
+        </button>
+      </div>
+
+      <label class="campo" *ngIf="esComidaPersonalizada">
+        <span>Calorías que consumís por día</span>
+        <input type="number" placeholder="Ej: 2000" [(ngModel)]="caloriasComidaPersonalizada" inputmode="numeric" />
+      </label>
+    </div>
+
+    <div class="card seccion">
+      <h3>¿Qué tan movido es tu día a día?</h3>
+      <div class="opciones">
+        <button
+          *ngFor="let opcion of opcionesActividad"
+          class="opcion"
+          [class.seleccionada]="actividadSeleccionada === opcion.id"
+          (click)="seleccionarActividad(opcion.id)"
+        >
+          <span class="opcion-etiqueta">{{ opcion.etiqueta }}</span>
+          <span class="opcion-detalle">{{ opcion.detalle }}</span>
+        </button>
+      </div>
+
+      <label class="campo" *ngIf="esActividadPersonalizada">
+        <span>Calorías que quemás por día</span>
+        <input type="number" placeholder="Ej: 2200" [(ngModel)]="caloriasActividadPersonalizada" inputmode="numeric" />
+      </label>
+    </div>
+
+    <p class="error" *ngIf="error">{{ error }}</p>
+
+    <button class="boton-principal" (click)="continuar()">Continuar</button>
+  </div>
+</div>

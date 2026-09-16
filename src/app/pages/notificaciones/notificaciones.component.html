@@ -1,0 +1,40 @@
+<div class="pantalla">
+  <div class="topbar">
+    <button class="volver" (click)="volver()">←</button>
+    <h2>Notificaciones</h2>
+  </div>
+
+  <div class="contenido">
+    <div class="card central">
+      <div class="icono">🔔</div>
+      <h3>Dejá que KALO te acompañe</h3>
+      <p>
+        Activá las notificaciones para que KALO te recuerde registrar tus comidas
+        y tu actividad. Así el seguimiento va a ser más preciso y te va a ayudar
+        a formar el hábito día a día.
+      </p>
+
+      <button
+        class="boton-principal"
+        (click)="activarNotificaciones()"
+        [disabled]="cargando || estado === 'concedido'"
+      >
+        {{ estado === 'concedido' ? 'Notificaciones activadas' : (cargando ? 'Solicitando permiso...' : 'Activar notificaciones') }}
+      </button>
+
+      <p class="estado-msg concedido" *ngIf="estado === 'concedido'">
+        ¡Listo! Ya te enviamos una notificación de prueba.
+      </p>
+      <p class="estado-msg denegado" *ngIf="estado === 'denegado'">
+        No diste el permiso. Podés activarlo más tarde desde la configuración de tu celular.
+      </p>
+      <p class="estado-msg denegado" *ngIf="estado === 'error'">
+        Hubo un problema al pedir el permiso. Probá de nuevo.
+      </p>
+    </div>
+
+    <button class="boton-secundario" (click)="continuar()">
+      {{ estado === 'concedido' || estado === 'denegado' ? 'Continuar' : 'Ahora no' }}
+    </button>
+  </div>
+</div>

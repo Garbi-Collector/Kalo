@@ -64,6 +64,10 @@ export class ResultadoComponent implements OnInit {
     this.evaluacion = this.imcService.evaluarObjetivo(this.peso, this.altura, this.pesoObjetivo);
   }
 
+  irAHabitos(): void {
+    this.router.navigate(['/habitos']);
+  }
+  
   volver(): void {
     this.router.navigate(['/']);
   }

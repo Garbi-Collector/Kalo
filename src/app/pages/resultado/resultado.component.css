@@ -48,3 +48,7 @@
 .resultado-objetivo.no-saludable { border-left-color: var(--color-warning); background: #FFF8ED; }
 .mensaje-objetivo { font-size: 14px; line-height: 1.5; color: var(--color-text); }
 .detalle-objetivo { margin-top: 8px; font-size: 13px; color: var(--color-text-soft); }
+
+.boton-continuar { margin-top: 8px; }
+
+.boton-principal:active { transform: scale(0.98); background: var(--color-primary-dark); }

@@ -21,10 +21,15 @@ export interface EvaluacionObjetivo {
   esCambioBrusco: boolean;
   mensaje: string;
 }
+export interface DatosHabitos {
+  caloriasConsumidas: number;
+  caloriasQuemadas: number;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ImcService {
   private datos: DatosUsuario | null = null;
+  private habitos: DatosHabitos | null = null;
 
   setDatosIniciales(altura: number, peso: number): void {
     this.datos = { altura, peso };
@@ -125,5 +130,14 @@ export class ImcService {
     }
 
     return { imcObjetivo, categoriaObjetivo, direccion, diferenciaKg, porcentajeCambio, esSaludable, esCambioBrusco, mensaje };
+  }
+
+
+  setHabitos(caloriasConsumidas: number, caloriasQuemadas: number): void {
+    this.habitos = { caloriasConsumidas, caloriasQuemadas };
+  }
+
+  obtenerHabitos(): DatosHabitos | null {
+    return this.habitos;
   }
 }
