@@ -1,0 +1,52 @@
+<div class="pantalla">
+  <app-top-bar></app-top-bar>
+  <div class="contenido">
+    <div class="card peso-card">
+      <p class="etiqueta">Tu peso actual</p>
+      <p class="peso-numero">{{ pesoActual }} <span>kg</span></p>
+    </div>
+
+    <div class="card dashboard-card" *ngIf="direccion !== 'sin-objetivo'">
+      <p class="etiqueta">Tu objetivo</p>
+      <ng-container [ngSwitch]="direccion">
+        <p *ngSwitchCase="'mantener'" class="dashboard-mensaje">
+          ¡Estás en tu peso ideal! Seguí manteniéndolo. 🎉
+        </p>
+        <p *ngSwitchCase="'bajar'" class="dashboard-mensaje">
+          Te faltan <strong>{{ diferenciaKg }} kg</strong> para bajar y llegar a tu peso ideal ({{ pesoObjetivo }} kg).
+        </p>
+        <p *ngSwitchCase="'subir'" class="dashboard-mensaje">
+          Te faltan <strong>{{ diferenciaKg }} kg</strong> para subir y llegar a tu peso ideal ({{ pesoObjetivo }} kg).
+        </p>
+      </ng-container>
+    </div>
+
+    <div class="card agua-card" (click)="sumarAgua()">
+      <button class="ayuda-btn" (click)="abrirModalAgua($event)">?</button>
+      <p class="etiqueta">Agua de hoy</p>
+      <p class="agua-numero">{{ vasosAgua }} <span>/ {{ vasosRecomendados }} vasos</span></p>
+      <div class="agua-barra">
+        <div class="agua-barra-relleno" [style.width.%]="progresoAgua"></div>
+      </div>
+      <p class="agua-hint">Tocá la card para sumar un vaso</p>
+    </div>
+  </div>
+
+  <div class="modal-overlay" *ngIf="modalAguaAbierto" (click)="cerrarModalAgua()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <h3>¿Cuánta agua tomar?</h3>
+      <p>
+        Se recomienda tomar alrededor de <strong>{{ litrosRecomendados }} litros de agua</strong> por día
+        para mantenerte bien hidratado. Es una referencia general: tus necesidades reales pueden
+        variar según tu actividad física, el clima y tu propio cuerpo.
+      </p>
+      <p>
+        En KALO calculamos que <strong>1 vaso equivale a {{ mlPorVaso }} ml</strong> aproximadamente,
+        así que el objetivo diario ronda los <strong>{{ vasosRecomendados }} vasos</strong>.
+      </p>
+      <button class="boton-modal" (click)="cerrarModalAgua()">Entendido</button>
+    </div>
+  </div>
+
+  <app-bottom-nav></app-bottom-nav>
+</div>

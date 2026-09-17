@@ -1,14 +1,46 @@
 import { Injectable } from '@angular/core';
 
 export interface DatosUsuario {
-  altura: number; // cm
-  peso: number;   // kg
+  altura: number;
+  peso: number;
+}
+
+export interface DatosHabitos {
+  caloriasConsumidas: number;
+  caloriasQuemadas: number;
+}
+
+export interface RegistroDia {
+  tipo: 'comida' | 'ejercicio';
+  calorias: number;
+  nota?: string;
+  hora: string;
+}
+
+export interface DiaTracker {
+  fecha: string;
+  registros: RegistroDia[];
+}
+
+export interface ResumenCalorico {
+  consumidoBase: number;
+  consumidoExtra: number;
+  consumidoTotal: number;
+  quemadoBase: number;
+  quemadoExtra: number;
+  quemadoTotal: number;
+  balance: number;
 }
 
 export interface CategoriaImc {
   nombre: string;
   descripcion: string;
   color: string;
+}
+
+export interface RegistroAgua {
+  fecha: string; // formato YYYY-MM-DD
+  vasos: number;
 }
 
 export interface EvaluacionObjetivo {
@@ -21,22 +53,91 @@ export interface EvaluacionObjetivo {
   esCambioBrusco: boolean;
   mensaje: string;
 }
-export interface DatosHabitos {
-  caloriasConsumidas: number;
-  caloriasQuemadas: number;
+
+interface EstadoKalo {
+  diaTracker: DiaTracker | null;
+  agua: RegistroAgua | null;
+  datos: DatosUsuario | null;
+  habitos: DatosHabitos | null;
+  pesoObjetivo: number | null;
+  notificacionesActivadas: boolean;
 }
+
+const STORAGE_KEY = 'kalo_estado';
 
 @Injectable({ providedIn: 'root' })
 export class ImcService {
-  private datos: DatosUsuario | null = null;
-  private habitos: DatosHabitos | null = null;
+  private estado: EstadoKalo = {
+    diaTracker: null,
+    agua: null,
+    datos: null,
+    habitos: null,
+    pesoObjetivo: null,
+    notificacionesActivadas: false
+  };
+
+  constructor() {
+    this.cargarDesdeStorage();
+  }
+
+  private cargarDesdeStorage(): void {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        this.estado = { ...this.estado, ...JSON.parse(raw) };
+      }
+    } catch {
+      // Si el JSON está corrupto o localStorage no está disponible, seguimos con el estado default
+    }
+  }
+
+  private guardarEnStorage(): void {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.estado));
+    } catch {
+      // Si falla (ej: modo incógnito o storage lleno), la app sigue funcionando en memoria
+    }
+  }
 
   setDatosIniciales(altura: number, peso: number): void {
-    this.datos = { altura, peso };
+    this.estado.datos = { altura, peso };
+    this.guardarEnStorage();
   }
 
   obtenerDatos(): DatosUsuario | null {
-    return this.datos;
+    return this.estado.datos;
+  }
+
+  setHabitos(caloriasConsumidas: number, caloriasQuemadas: number): void {
+    this.estado.habitos = { caloriasConsumidas, caloriasQuemadas };
+    this.guardarEnStorage();
+  }
+
+  obtenerHabitos(): DatosHabitos | null {
+    return this.estado.habitos;
+  }
+
+  setPesoObjetivo(peso: number): void {
+    this.estado.pesoObjetivo = peso;
+    this.guardarEnStorage();
+  }
+
+  obtenerPesoObjetivo(): number | null {
+    return this.estado.pesoObjetivo;
+  }
+
+  setNotificacionesActivadas(valor: boolean): void {
+    this.estado.notificacionesActivadas = valor;
+    this.guardarEnStorage();
+  }
+
+  obtenerNotificacionesActivadas(): boolean {
+    return this.estado.notificacionesActivadas;
+  }
+
+  reiniciarDatos(): void {
+    this.estado = {diaTracker: null, agua: null, datos: null, habitos: null, pesoObjetivo: null, notificacionesActivadas: false };
+    this.guardarEnStorage();
   }
 
   calcularImc(peso: number, alturaCm: number): number {
@@ -133,11 +234,104 @@ export class ImcService {
   }
 
 
-  setHabitos(caloriasConsumidas: number, caloriasQuemadas: number): void {
-    this.habitos = { caloriasConsumidas, caloriasQuemadas };
+  private hoyISO(): string {
+    return new Date().toISOString().split('T')[0];
   }
 
-  obtenerHabitos(): DatosHabitos | null {
-    return this.habitos;
+  obtenerVasosAgua(): number {
+    const hoy = this.hoyISO();
+    if (!this.estado.agua || this.estado.agua.fecha !== hoy) {
+      return 0;
+    }
+    return this.estado.agua.vasos;
+  }
+
+  sumarVasoAgua(): number {
+    const hoy = this.hoyISO();
+    if (!this.estado.agua || this.estado.agua.fecha !== hoy) {
+      this.estado.agua = { fecha: hoy, vasos: 0 };
+    }
+    this.estado.agua.vasos++;
+    this.guardarEnStorage();
+    return this.estado.agua.vasos;
+  }
+
+  actualizarPesoAltura(altura: number, peso: number): void {
+    this.estado.datos = { altura, peso };
+    this.guardarEnStorage();
+  }
+
+  tieneOnboardingCompleto(): boolean {
+    const datos = this.estado.datos;
+    const habitos = this.estado.habitos;
+    const pesoObjetivo = this.estado.pesoObjetivo;
+
+    return !!(
+      datos?.altura &&
+      datos?.peso &&
+      habitos?.caloriasConsumidas &&
+      habitos?.caloriasQuemadas &&
+      pesoObjetivo
+    );
+  }
+
+  private obtenerOCrearDiaTracker(): DiaTracker {
+    const hoy = this.hoyISO();
+    if (!this.estado.diaTracker || this.estado.diaTracker.fecha !== hoy) {
+      this.estado.diaTracker = { fecha: hoy, registros: [] };
+    }
+    return this.estado.diaTracker;
+  }
+
+  obtenerRegistrosHoy(): RegistroDia[] {
+    const hoy = this.hoyISO();
+    if (!this.estado.diaTracker || this.estado.diaTracker.fecha !== hoy) {
+      return [];
+    }
+    return this.estado.diaTracker.registros;
+  }
+
+  agregarRegistro(tipo: 'comida' | 'ejercicio', calorias: number, nota?: string): void {
+    const dia = this.obtenerOCrearDiaTracker();
+    const hora = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    dia.registros.push({ tipo, calorias, nota, hora });
+    this.guardarEnStorage();
+  }
+
+  eliminarRegistro(index: number): void {
+    const registros = this.obtenerRegistrosHoy();
+    if (index >= 0 && index < registros.length) {
+      registros.splice(index, 1);
+      this.guardarEnStorage();
+    }
+  }
+
+  obtenerResumenCalorico(): ResumenCalorico {
+    const habitos = this.estado.habitos;
+    const registros = this.obtenerRegistrosHoy();
+
+    const consumidoBase = habitos?.caloriasConsumidas ?? 0;
+    const quemadoBase = habitos?.caloriasQuemadas ?? 0;
+
+    const consumidoExtra = registros
+      .filter(r => r.tipo === 'comida')
+      .reduce((sum, r) => sum + r.calorias, 0);
+
+    const quemadoExtra = registros
+      .filter(r => r.tipo === 'ejercicio')
+      .reduce((sum, r) => sum + r.calorias, 0);
+
+    const consumidoTotal = consumidoBase + consumidoExtra;
+    const quemadoTotal = quemadoBase + quemadoExtra;
+
+    return {
+      consumidoBase,
+      consumidoExtra,
+      consumidoTotal,
+      quemadoBase,
+      quemadoExtra,
+      quemadoTotal,
+      balance: quemadoTotal - consumidoTotal
+    };
   }
 }

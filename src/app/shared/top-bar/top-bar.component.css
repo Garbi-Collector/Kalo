@@ -1,0 +1,16 @@
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(14px + env(safe-area-inset-top)) 20px 14px;
+  background: var(--color-text-soft);
+  border-bottom: 1px solid #F0E4D8;
+  position: relative;
+  z-index: 10;
+}
+.marca {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--color-surface);
+}

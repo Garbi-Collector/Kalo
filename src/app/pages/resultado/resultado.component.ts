@@ -46,6 +46,12 @@ export class ResultadoComponent implements OnInit {
     const rango = this.imcService.obtenerRangoSaludable(this.altura);
     this.pesoMinSaludable = rango.min;
     this.pesoMaxSaludable = rango.max;
+
+    const pesoGuardado = this.imcService.obtenerPesoObjetivo();
+    if (pesoGuardado) {
+      this.pesoObjetivo = pesoGuardado;
+      this.evaluacion = this.imcService.evaluarObjetivo(this.peso, this.altura, pesoGuardado);
+    }
   }
 
   evaluarObjetivo(): void {
@@ -62,12 +68,13 @@ export class ResultadoComponent implements OnInit {
     }
 
     this.evaluacion = this.imcService.evaluarObjetivo(this.peso, this.altura, this.pesoObjetivo);
+    this.imcService.setPesoObjetivo(this.pesoObjetivo);
   }
 
   irAHabitos(): void {
     this.router.navigate(['/habitos']);
   }
-  
+
   volver(): void {
     this.router.navigate(['/']);
   }

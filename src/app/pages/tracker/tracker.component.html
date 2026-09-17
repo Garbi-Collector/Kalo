@@ -1,0 +1,147 @@
+<div class="pantalla">
+  <app-top-bar></app-top-bar>
+
+  <div class="contenido">
+    <div class="card resumen-card">
+      <div class="resumen-col">
+        <p class="etiqueta">Consumidas</p>
+        <p class="resumen-numero consumido">{{ resumen.consumidoTotal }}</p>
+        <p class="resumen-detalle">{{ resumen.consumidoBase }} base + {{ resumen.consumidoExtra }} extra</p>
+      </div>
+      <div class="resumen-divisor"></div>
+      <div class="resumen-col">
+        <p class="etiqueta">Quemadas</p>
+        <p class="resumen-numero quemado">{{ resumen.quemadoTotal }}</p>
+        <p class="resumen-detalle">{{ resumen.quemadoBase }} base + {{ resumen.quemadoExtra }} extra</p>
+      </div>
+    </div>
+
+    <div class="card balance-card"
+         [class.positivo]="resumen.balance > 0"
+         [class.negativo]="resumen.balance < 0"
+         [class.neutro]="resumen.balance === 0">
+      <p class="etiqueta">Balance de hoy</p>
+      <p class="balance-numero">{{ resumen.balance > 0 ? '+' : '' }}{{ resumen.balance }} kcal</p>
+      <p class="balance-hint">
+        {{ resumen.balance > 0
+        ? 'Quemaste más de lo que consumiste hoy.'
+        : resumen.balance < 0
+          ? 'Consumiste más de lo que quemaste hoy.'
+          : 'Consumiste exactamente lo que quemaste hoy.' }}
+      </p>
+    </div>
+
+    <div class="acciones">
+      <button class="accion-btn" (click)="abrirModal('comida')">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 3V10C7 11.1046 7.89543 12 9 12V12C10.1046 12 11 11.1046 11 10V3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M9 12V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M16 3C16 3 14 5 14 8C14 10 15 11 16 11V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Comida fuera de dieta</span>
+      </button>
+
+      <button class="accion-btn" (click)="abrirModal('ejercicio')">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6.5 6.5L17.5 17.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <rect x="3" y="9" width="4" height="6" rx="1" stroke="currentColor" stroke-width="2"/>
+          <rect x="17" y="9" width="4" height="6" rx="1" stroke="currentColor" stroke-width="2"/>
+          <path d="M7 12H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span>Registrar ejercicio</span>
+      </button>
+
+      <button class="accion-btn" (click)="abrirModal('perfil')">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 20C4 16.6863 7.58172 14 12 14C16.4183 14 20 16.6863 20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <span>Editar peso y altura</span>
+      </button>
+    </div>
+
+    <div class="card registros-card" *ngIf="registros.length > 0">
+      <h3>Registros de hoy</h3>
+      <div class="registro-item" *ngFor="let registro of registros; let i = index">
+        <div class="registro-info">
+          <span class="registro-tipo" [class.tipo-comida]="registro.tipo === 'comida'" [class.tipo-ejercicio]="registro.tipo === 'ejercicio'">
+            {{ registro.tipo === 'comida' ? 'Comida' : 'Ejercicio' }}
+          </span>
+          <span class="registro-nota" *ngIf="registro.nota">{{ registro.nota }}</span>
+          <span class="registro-hora">{{ registro.hora }}</span>
+        </div>
+        <div class="registro-derecha">
+          <span class="registro-calorias" [class.tipo-comida]="registro.tipo === 'comida'" [class.tipo-ejercicio]="registro.tipo === 'ejercicio'">
+            {{ registro.tipo === 'comida' ? '+' : '-' }}{{ registro.calorias }}
+          </span>
+          <button class="eliminar-btn" (click)="eliminarRegistro(i)" aria-label="Eliminar registro">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" *ngIf="modalActivo !== 'ninguno'" (click)="cerrarModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+
+      <ng-container *ngIf="modalActivo === 'comida'">
+        <h3>Comida fuera de dieta</h3>
+        <p class="modal-subtexto">Registrá aproximadamente cuántas calorías consumiste.</p>
+        <label class="campo">
+          <span>Calorías</span>
+          <input type="number" placeholder="Ej: 450" [(ngModel)]="caloriasComidaInput" inputmode="numeric" />
+        </label>
+        <label class="campo">
+          <span>Nota (opcional)</span>
+          <input type="text" placeholder="Ej: Hamburguesa" [(ngModel)]="notaComidaInput" />
+        </label>
+        <p class="error" *ngIf="error">{{ error }}</p>
+        <div class="modal-botones">
+          <button class="boton-secundario" (click)="cerrarModal()">Cancelar</button>
+          <button class="boton-principal" (click)="confirmarComida()">Guardar</button>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="modalActivo === 'ejercicio'">
+        <h3>Registrar ejercicio</h3>
+        <p class="modal-subtexto">Registrá aproximadamente cuántas calorías quemaste.</p>
+        <label class="campo">
+          <span>Calorías quemadas</span>
+          <input type="number" placeholder="Ej: 300" [(ngModel)]="caloriasEjercicioInput" inputmode="numeric" />
+        </label>
+        <label class="campo">
+          <span>Nota (opcional)</span>
+          <input type="text" placeholder="Ej: Corrida 5km" [(ngModel)]="notaEjercicioInput" />
+        </label>
+        <p class="error" *ngIf="error">{{ error }}</p>
+        <div class="modal-botones">
+          <button class="boton-secundario" (click)="cerrarModal()">Cancelar</button>
+          <button class="boton-principal" (click)="confirmarEjercicio()">Guardar</button>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="modalActivo === 'perfil'">
+        <h3>Editar peso y altura</h3>
+        <label class="campo">
+          <span>Altura (cm)</span>
+          <input type="number" placeholder="Ej: 170" [(ngModel)]="alturaInput" inputmode="numeric" />
+        </label>
+        <label class="campo">
+          <span>Peso (kg)</span>
+          <input type="number" placeholder="Ej: 68" [(ngModel)]="pesoInput" inputmode="decimal" />
+        </label>
+        <p class="error" *ngIf="error">{{ error }}</p>
+        <div class="modal-botones">
+          <button class="boton-secundario" (click)="cerrarModal()">Cancelar</button>
+          <button class="boton-principal" (click)="confirmarPerfil()">Guardar</button>
+        </div>
+      </ng-container>
+
+    </div>
+  </div>
+
+  <app-bottom-nav></app-bottom-nav>
+</div>
