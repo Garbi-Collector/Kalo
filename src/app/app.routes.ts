@@ -6,6 +6,7 @@ import { NotificacionesComponent } from './pages/notificaciones/notificaciones.c
 import { HomeComponent } from './pages/home/home.component';
 import { TrackerComponent } from './pages/tracker/tracker.component';
 import { redirigirSiYaTieneDatosGuard, requiereOnboardingGuard } from './guards/onboarding.guard';
+import {CalendarioComponent} from "./pages/calendario/calendario.component";
 
 export const routes: Routes = [
   { path: '', component: InicioComponent, canActivate: [redirigirSiYaTieneDatosGuard] },
@@ -14,5 +15,6 @@ export const routes: Routes = [
   { path: 'notificaciones', component: NotificacionesComponent },
   { path: 'home', component: HomeComponent, canActivate: [requiereOnboardingGuard] },
   { path: 'tracker', component: TrackerComponent, canActivate: [requiereOnboardingGuard] },
+  { path: 'calendario', component: CalendarioComponent, canActivate: [requiereOnboardingGuard] },
   { path: '**', redirectTo: '' }
 ];

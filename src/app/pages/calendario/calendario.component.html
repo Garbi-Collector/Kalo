@@ -1,0 +1,81 @@
+<div class="pantalla">
+  <div class="topbar">
+    <button class="volver" (click)="volver()">←</button>
+    <h2>Calendario</h2>
+  </div>
+
+  <div class="contenido" (touchstart)="onTouchStart($event)" (touchend)="onTouchEnd($event)">
+    <app-calendar-grid
+      [anio]="anio"
+      [mes]="mes"
+      [interactivo]="true"
+      (diaClick)="onDiaClick($event)"
+    ></app-calendar-grid>
+
+    <p class="swipe-hint">Deslizá hacia arriba para el mes anterior, hacia abajo para el siguiente</p>
+
+    <div class="leyenda">
+      <div class="leyenda-item"><span class="punto color-verde"></span> Buen día</div>
+      <div class="leyenda-item"><span class="punto color-amarillo"></span> Neutro</div>
+      <div class="leyenda-item"><span class="punto color-rojo"></span> Día para mejorar</div>
+      <div class="leyenda-item"><span class="punto color-naranja"></span> Cambio de 1 kilo</div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" *ngIf="modalAbierto" (click)="cerrarModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()" *ngIf="infoDia">
+      <h3>{{ fechaSeleccionada }}</h3>
+
+      <ng-container [ngSwitch]="infoDia.estado">
+        <p *ngSwitchCase="'sin-datos'">No hay datos registrados de ese día.</p>
+        <p *ngSwitchCase="'futuro'">{{ infoDia.consejo }}</p>
+
+        <div *ngSwitchCase="'con-datos'" class="info-dia">
+          <p class="resultado-texto" *ngIf="infoDia.resultado === 'gano'">
+            Ese día ganaste aproximadamente <strong>{{ infoDia.diferencia }} kcal</strong> de más
+            (consumiste más de lo que quemaste).
+          </p>
+          <p class="resultado-texto" *ngIf="infoDia.resultado === 'perdio'">
+            Ese día perdiste aproximadamente <strong>{{ infoDia.diferencia }} kcal</strong> de más
+            (quemaste más de lo que consumiste).
+          </p>
+          <p class="resultado-texto" *ngIf="infoDia.resultado === 'igual'">
+            Ese día consumiste y quemaste prácticamente lo mismo.
+          </p>
+
+          <div class="detalle-grid">
+            <div><span class="detalle-etiqueta">Consumido</span><span class="detalle-valor">{{ infoDia.consumido }} kcal</span></div>
+            <div><span class="detalle-etiqueta">Quemado</span><span class="detalle-valor">{{ infoDia.quemado }} kcal</span></div>
+            <div><span class="detalle-etiqueta">Agua</span><span class="detalle-valor">{{ infoDia.vasosAgua }} vasos</span></div>
+          </div>
+
+          <div class="detalle-registros" *ngIf="infoDia.registros && infoDia.registros.length > 0">
+            <p class="detalle-registros-titulo">Comidas y ejercicio de ese día</p>
+            <div class="registro-item-mini" *ngFor="let r of infoDia.registros">
+              <span class="registro-tipo-mini" [class.tipo-comida]="r.tipo === 'comida'" [class.tipo-ejercicio]="r.tipo === 'ejercicio'">
+                {{ r.tipo === 'comida' ? 'Comida' : 'Ejercicio' }}
+              </span>
+              <span class="registro-nota-mini" *ngIf="r.nota">{{ r.nota }}</span>
+              <span class="registro-calorias-mini" [class.tipo-comida]="r.tipo === 'comida'" [class.tipo-ejercicio]="r.tipo === 'ejercicio'">
+                {{ r.tipo === 'comida' ? '+' : '-' }}{{ r.calorias }}
+              </span>
+            </div>
+          </div>
+
+          <p class="sin-registros-extra" *ngIf="!infoDia.registros || infoDia.registros.length === 0">
+            Ese día no se registraron comidas fuera de dieta ni ejercicio extra: se contabilizó tu dieta y actividad habitual.
+          </p>
+
+          <p class="hito-texto" *ngIf="infoDia.hitoKilo">
+            {{ infoDia.hitoKilo === 'perdido' ? 'Este fue el día en que perdiste 1 kilo.' : 'Este fue el día en que ganaste 1 kilo.' }}
+            {{ infoDia.esHitoManual ? '(Confirmado por vos al actualizar tu peso)' : '(Proyección aproximada)' }}
+          </p>
+        </div>
+      </ng-container>
+
+      <button class="boton-principal" (click)="cerrarModal()">Cerrar</button>
+    </div>
+  </div>
+
+  <app-bottom-nav></app-bottom-nav>
+</div>
