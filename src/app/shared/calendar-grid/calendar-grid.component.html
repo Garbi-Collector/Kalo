@@ -1,0 +1,21 @@
+<div class="calendario">
+  <p class="mes-titulo">{{ nombreMes }}</p>
+  <div class="semana-header">
+    <span *ngFor="let d of diasSemana">{{ d }}</span>
+  </div>
+  <div class="grilla">
+    <div
+      *ngFor="let celda of celdas"
+      class="celda"
+      [class.clickeable]="interactivo && celda.fecha"
+      (click)="onDiaClick(celda)"
+    >
+      <span
+        *ngIf="celda.fecha"
+        class="dia-circulo"
+        [ngClass]="'color-' + celda.color"
+        [class.es-hoy]="celda.esHoy"
+      >{{ celda.numero }}</span>
+    </div>
+  </div>
+</div>
