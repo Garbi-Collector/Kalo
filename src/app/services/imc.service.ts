@@ -1,5 +1,9 @@
 import { Injectable } from '@angular/core';
 
+// ==========================================
+// INTERFACES
+// ==========================================
+
 export interface DatosUsuario {
   altura: number;
   peso: number;
@@ -8,6 +12,23 @@ export interface DatosUsuario {
 export interface DatosHabitos {
   caloriasConsumidas: number;
   caloriasQuemadas: number;
+}
+
+export interface CategoriaImc {
+  nombre: string;
+  descripcion: string;
+  color: string;
+}
+
+export interface EvaluacionObjetivo {
+  imcObjetivo: number;
+  categoriaObjetivo: CategoriaImc;
+  direccion: 'bajar' | 'subir' | 'mantener';
+  diferenciaKg: number;
+  porcentajeCambio: number;
+  esSaludable: boolean;
+  esCambioBrusco: boolean;
+  mensaje: string;
 }
 
 export interface RegistroDia {
@@ -32,52 +53,92 @@ export interface ResumenCalorico {
   balance: number;
 }
 
-export interface CategoriaImc {
-  nombre: string;
-  descripcion: string;
-  color: string;
-}
-
 export interface RegistroAgua {
   fecha: string; // formato YYYY-MM-DD
   vasos: number;
 }
 
-export interface EvaluacionObjetivo {
-  imcObjetivo: number;
-  categoriaObjetivo: CategoriaImc;
-  direccion: 'bajar' | 'subir' | 'mantener';
-  diferenciaKg: number;
-  porcentajeCambio: number;
-  esSaludable: boolean;
-  esCambioBrusco: boolean;
-  mensaje: string;
+export interface RegistroDiaHistorico {
+  fecha: string;
+  consumido: number;
+  quemado: number;
+  vasosAgua: number;
+  esAutomatico: boolean;
+  balance: number;
+  hitoKilo?: 'perdido' | 'ganado' | null;
+  hitoEsManual?: boolean;
+  registros: RegistroDia[];
+}
+
+export interface RegistroPeso {
+  fecha: string;
+  peso: number;
+}
+
+export interface ProyeccionKilo {
+  fecha: string;
+  tipo: 'perdido' | 'ganado';
+}
+
+export interface MarcaDia {
+  color: 'rojo' | 'amarillo' | 'verde' | 'naranja' | 'sin-datos' | 'futuro';
+  esHoy: boolean;
+}
+
+export interface InfoDiaModal {
+  estado: 'sin-datos' | 'futuro' | 'con-datos';
+  consejo?: string;
+  consumido?: number;
+  quemado?: number;
+  vasosAgua?: number;
+  resultado?: 'gano' | 'perdio' | 'igual';
+  diferencia?: number;
+  hitoKilo?: 'perdido' | 'ganado' | null;
+  esHitoManual?: boolean;
+  registros?: RegistroDia[];
 }
 
 interface EstadoKalo {
-  diaTracker: DiaTracker | null;
-  agua: RegistroAgua | null;
   datos: DatosUsuario | null;
   habitos: DatosHabitos | null;
   pesoObjetivo: number | null;
   notificacionesActivadas: boolean;
+  diaTracker: DiaTracker | null;
+  agua: RegistroAgua | null;
+  historialDias: Record<string, RegistroDiaHistorico>;
+  historialPeso: RegistroPeso[];
+  ultimaFechaProcesada: string | null;
+  fechaInicioProyeccion: string | null;
+  proyeccionKilo: ProyeccionKilo | null;
 }
 
 const STORAGE_KEY = 'kalo_estado';
+const KCAL_POR_KILO = 7700;
 
 @Injectable({ providedIn: 'root' })
 export class ImcService {
+
+  // ==========================================
+  // ESTADO Y PERSISTENCIA
+  // ==========================================
+
   private estado: EstadoKalo = {
-    diaTracker: null,
-    agua: null,
     datos: null,
     habitos: null,
     pesoObjetivo: null,
-    notificacionesActivadas: false
+    notificacionesActivadas: false,
+    diaTracker: null,
+    agua: null,
+    historialDias: {},
+    historialPeso: [],
+    ultimaFechaProcesada: null,
+    fechaInicioProyeccion: null,
+    proyeccionKilo: null
   };
 
   constructor() {
     this.cargarDesdeStorage();
+    this.procesarDiasPendientes();
   }
 
   private cargarDesdeStorage(): void {
@@ -98,6 +159,40 @@ export class ImcService {
       // Si falla (ej: modo incógnito o storage lleno), la app sigue funcionando en memoria
     }
   }
+
+  reiniciarDatos(): void {
+    this.estado = {
+      datos: null,
+      habitos: null,
+      pesoObjetivo: null,
+      notificacionesActivadas: false,
+      diaTracker: null,
+      agua: null,
+      historialDias: {},
+      historialPeso: [],
+      ultimaFechaProcesada: null,
+      fechaInicioProyeccion: null,
+      proyeccionKilo: null
+    };
+    this.guardarEnStorage();
+  }
+
+  private hoyISO(): string {
+    return new Date().toISOString().split('T')[0];
+  }
+  private redondear2(valor: number): number {
+    return Math.round(valor * 100) / 100;
+  }
+
+  private sumarDias(fechaISO: string, dias: number): string {
+    const fecha = new Date(fechaISO + 'T00:00:00');
+    fecha.setDate(fecha.getDate() + dias);
+    return fecha.toISOString().split('T')[0];
+  }
+
+  // ==========================================
+  // ONBOARDING: DATOS BÁSICOS, HÁBITOS, OBJETIVO
+  // ==========================================
 
   setDatosIniciales(altura: number, peso: number): void {
     this.estado.datos = { altura, peso };
@@ -135,10 +230,33 @@ export class ImcService {
     return this.estado.notificacionesActivadas;
   }
 
-  reiniciarDatos(): void {
-    this.estado = {diaTracker: null, agua: null, datos: null, habitos: null, pesoObjetivo: null, notificacionesActivadas: false };
-    this.guardarEnStorage();
+  tieneOnboardingCompleto(): boolean {
+    const datos = this.estado.datos;
+    const habitos = this.estado.habitos;
+    const pesoObjetivo = this.estado.pesoObjetivo;
+
+    return !!(
+      datos?.altura &&
+      datos?.peso &&
+      habitos?.caloriasConsumidas &&
+      habitos?.caloriasQuemadas &&
+      pesoObjetivo
+    );
   }
+
+  obtenerDireccionObjetivo(): 'bajar' | 'subir' | 'mantener' {
+    const datos = this.estado.datos;
+    const objetivo = this.estado.pesoObjetivo;
+    if (!datos || !objetivo) return 'mantener';
+    const diff = objetivo - datos.peso;
+    if (diff < -0.5) return 'bajar';
+    if (diff > 0.5) return 'subir';
+    return 'mantener';
+  }
+
+  // ==========================================
+  // IMC
+  // ==========================================
 
   calcularImc(peso: number, alturaCm: number): number {
     const alturaM = alturaCm / 100;
@@ -233,10 +351,9 @@ export class ImcService {
     return { imcObjetivo, categoriaObjetivo, direccion, diferenciaKg, porcentajeCambio, esSaludable, esCambioBrusco, mensaje };
   }
 
-
-  private hoyISO(): string {
-    return new Date().toISOString().split('T')[0];
-  }
+  // ==========================================
+  // AGUA
+  // ==========================================
 
   obtenerVasosAgua(): number {
     const hoy = this.hoyISO();
@@ -256,24 +373,9 @@ export class ImcService {
     return this.estado.agua.vasos;
   }
 
-  actualizarPesoAltura(altura: number, peso: number): void {
-    this.estado.datos = { altura, peso };
-    this.guardarEnStorage();
-  }
-
-  tieneOnboardingCompleto(): boolean {
-    const datos = this.estado.datos;
-    const habitos = this.estado.habitos;
-    const pesoObjetivo = this.estado.pesoObjetivo;
-
-    return !!(
-      datos?.altura &&
-      datos?.peso &&
-      habitos?.caloriasConsumidas &&
-      habitos?.caloriasQuemadas &&
-      pesoObjetivo
-    );
-  }
+  // ==========================================
+  // TRACKER DEL DÍA (comida extra / ejercicio)
+  // ==========================================
 
   private obtenerOCrearDiaTracker(): DiaTracker {
     const hoy = this.hoyISO();
@@ -331,7 +433,224 @@ export class ImcService {
       quemadoBase,
       quemadoExtra,
       quemadoTotal,
-      balance: quemadoTotal - consumidoTotal
+      balance: this.redondear2(quemadoTotal - consumidoTotal)
     };
+  }
+
+  // ==========================================
+  // PESO / ALTURA (edición + detección de hito)
+  // ==========================================
+
+  actualizarPesoAltura(altura: number, peso: number): { hitoAlcanzado: 'perdido' | 'ganado' | null } {
+    const pesoAnterior = this.estado.datos?.peso ?? peso;
+    this.estado.datos = { altura, peso };
+
+    const hoy = this.hoyISO();
+    this.estado.historialPeso.push({ fecha: hoy, peso });
+
+    let hitoAlcanzado: 'perdido' | 'ganado' | null = null;
+    const diff = Math.round((peso - pesoAnterior) * 10) / 10;
+    const objetivo = this.obtenerDireccionObjetivo();
+
+    const perdioKilo = diff <= -0.9;
+    const ganoKilo = diff >= 0.9;
+
+    if ((objetivo === 'bajar' && perdioKilo) || (objetivo === 'subir' && ganoKilo)) {
+      hitoAlcanzado = objetivo === 'bajar' ? 'perdido' : 'ganado';
+
+      if (!this.estado.historialDias[hoy]) {
+        this.estado.historialDias[hoy] = {
+          fecha: hoy, consumido: 0, quemado: 0, vasosAgua: 0,
+          esAutomatico: true, balance: 0, hitoKilo: null, hitoEsManual: false,
+          registros: []
+        };
+      }
+      this.estado.historialDias[hoy].hitoKilo = hitoAlcanzado;
+      this.estado.historialDias[hoy].hitoEsManual = true;
+
+      this.estado.proyeccionKilo = null;
+      this.estado.fechaInicioProyeccion = hoy;
+    }
+
+    this.guardarEnStorage();
+    return { hitoAlcanzado };
+  }
+
+  // ==========================================
+  // CIERRE DIARIO Y PROYECCIÓN DE KILO
+  // ==========================================
+
+  private cerrarDia(fecha: string): void {
+    const habitos = this.estado.habitos;
+    const consumidoBase = habitos?.caloriasConsumidas ?? 0;
+    const quemadoBase = habitos?.caloriasQuemadas ?? 0;
+
+    let consumidoExtra = 0;
+    let quemadoExtra = 0;
+    let esAutomatico = true;
+    let registrosDelDia: RegistroDia[] = [];
+
+    if (this.estado.diaTracker && this.estado.diaTracker.fecha === fecha) {
+      registrosDelDia = this.estado.diaTracker.registros;
+      consumidoExtra = registrosDelDia
+        .filter(r => r.tipo === 'comida')
+        .reduce((s, r) => s + r.calorias, 0);
+      quemadoExtra = registrosDelDia
+        .filter(r => r.tipo === 'ejercicio')
+        .reduce((s, r) => s + r.calorias, 0);
+      esAutomatico = registrosDelDia.length === 0;
+    }
+
+    let vasosAgua = 0;
+    if (this.estado.agua && this.estado.agua.fecha === fecha) {
+      vasosAgua = this.estado.agua.vasos;
+    }
+
+    const consumido = consumidoBase + consumidoExtra;
+    const quemado = quemadoBase + quemadoExtra;
+    const balance = this.redondear2(quemado - consumido);
+
+    this.estado.historialDias[fecha] = {
+      fecha, consumido, quemado, vasosAgua, esAutomatico, balance,
+      hitoKilo: null, hitoEsManual: false,
+      registros: registrosDelDia
+    };
+
+    if (!this.estado.fechaInicioProyeccion) {
+      this.estado.fechaInicioProyeccion = fecha;
+    }
+  }
+
+  private procesarDiasPendientes(): void {
+    const hoy = this.hoyISO();
+    const ultima = this.estado.ultimaFechaProcesada;
+
+    if (!ultima) {
+      this.estado.ultimaFechaProcesada = hoy;
+      this.guardarEnStorage();
+      return;
+    }
+    if (ultima === hoy) return;
+
+    let cursor = ultima;
+    while (cursor < hoy) {
+      this.cerrarDia(cursor);
+      cursor = this.sumarDias(cursor, 1);
+    }
+
+    this.estado.ultimaFechaProcesada = hoy;
+    this.recalcularProyeccionKilo();
+    this.guardarEnStorage();
+  }
+
+  private recalcularProyeccionKilo(): void {
+    const inicio = this.estado.fechaInicioProyeccion;
+    if (!inicio) { this.estado.proyeccionKilo = null; return; }
+
+    const dias = Object.values(this.estado.historialDias).filter(d => d.fecha >= inicio);
+    if (dias.length === 0) { this.estado.proyeccionKilo = null; return; }
+
+    const promedio = dias.reduce((s, d) => s + d.balance, 0) / dias.length;
+    if (Math.abs(promedio) < 1) { this.estado.proyeccionKilo = null; return; }
+
+    const diasParaKilo = Math.round(KCAL_POR_KILO / Math.abs(promedio));
+    const tipo: 'perdido' | 'ganado' = promedio > 0 ? 'perdido' : 'ganado';
+    const fechaObjetivo = this.sumarDias(this.hoyISO(), diasParaKilo);
+
+    this.estado.proyeccionKilo = { fecha: fechaObjetivo, tipo };
+  }
+
+  // ==========================================
+  // CALENDARIO: colores, consejos y modal de día
+  // ==========================================
+
+  private obtenerColorBalance(balance: number): 'rojo' | 'amarillo' | 'verde' {
+    if (Math.abs(balance) < 1) return 'amarillo';
+    const quemoMas = balance > 0;
+    const objetivo = this.obtenerDireccionObjetivo();
+    if (objetivo === 'subir') {
+      return quemoMas ? 'rojo' : 'verde';
+    }
+    return quemoMas ? 'verde' : 'rojo';
+  }
+
+  obtenerMarcaDia(fecha: string): MarcaDia {
+    const hoy = this.hoyISO();
+    const esHoy = fecha === hoy;
+    const registro = this.estado.historialDias[fecha];
+
+    if (registro?.hitoKilo) {
+      return { color: 'naranja', esHoy };
+    }
+    if (this.estado.proyeccionKilo?.fecha === fecha && fecha >= hoy) {
+      return { color: 'naranja', esHoy };
+    }
+    if (fecha > hoy) {
+      return { color: 'futuro', esHoy: false };
+    }
+    if (!registro) {
+      return { color: 'sin-datos', esHoy };
+    }
+    return { color: this.obtenerColorBalance(registro.balance), esHoy };
+  }
+
+  private readonly consejosFuturo = [
+    'Todo se construye día a día: enfocate en las decisiones de hoy.',
+    'El futuro todavía no tiene datos porque depende de lo que hagas hoy.',
+    'No hay nada que preocuparse por adelantado: cada día se registra cuando llega.',
+    'Cada comida y cada vaso de agua de hoy son los que van a definir este día cuando llegue.',
+    'La constancia de hoy es la que arma el resultado de mañana.',
+    'Un buen día empieza por registrar tus hábitos con honestidad.',
+    'Todavía no pasó nada: seguí enfocado en el presente.',
+    'Los resultados no se adelantan, se construyen registrando día a día.'
+  ];
+
+  obtenerConsejoFuturo(fecha: string): string {
+    let hash = 0;
+    for (let i = 0; i < fecha.length; i++) hash = (hash * 31 + fecha.charCodeAt(i)) >>> 0;
+    return this.consejosFuturo[hash % this.consejosFuturo.length];
+  }
+
+  obtenerInfoDia(fecha: string): InfoDiaModal {
+    const hoy = this.hoyISO();
+
+    if (fecha > hoy) {
+      return { estado: 'futuro', consejo: this.obtenerConsejoFuturo(fecha) };
+    }
+
+    const esHoy = fecha === hoy;
+    const registro = this.estado.historialDias[fecha];
+
+    if (!registro && !esHoy) {
+      return { estado: 'sin-datos' };
+    }
+
+    let consumido: number, quemado: number, vasosAgua: number;
+    let hitoKilo: 'perdido' | 'ganado' | null = null;
+    let esHitoManual = false;
+    let registros: RegistroDia[] = [];
+
+    if (esHoy) {
+      const resumen = this.obtenerResumenCalorico();
+      consumido = resumen.consumidoTotal;
+      quemado = resumen.quemadoTotal;
+      vasosAgua = this.obtenerVasosAgua();
+      hitoKilo = registro?.hitoKilo ?? null;
+      esHitoManual = registro?.hitoEsManual ?? false;
+      registros = this.obtenerRegistrosHoy();
+    } else {
+      consumido = registro!.consumido;
+      quemado = registro!.quemado;
+      vasosAgua = registro!.vasosAgua;
+      hitoKilo = registro!.hitoKilo ?? null;
+      esHitoManual = registro!.hitoEsManual ?? false;
+      registros = registro!.registros ?? [];
+    }
+
+    const diferencia = this.redondear2(Math.abs(quemado - consumido));
+    const resultado: 'gano' | 'perdio' | 'igual' =
+      diferencia === 0 ? 'igual' : (consumido > quemado ? 'gano' : 'perdio');
+
+    return { estado: 'con-datos', consumido, quemado, vasosAgua, resultado, diferencia, hitoKilo, esHitoManual, registros };
   }
 }
