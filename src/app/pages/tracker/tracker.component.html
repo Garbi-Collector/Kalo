@@ -2,6 +2,14 @@
   <app-top-bar></app-top-bar>
 
   <div class="contenido">
+
+    <div class="card calendario-card" (click)="irACalendario()">
+      <h3>Calendario</h3>
+      <div class="calendario-preview">
+        <app-calendar-grid [anio]="anioActual" [mes]="mesActual" [interactivo]="false"></app-calendar-grid>
+      </div>
+    </div>
+
     <div class="card resumen-card">
       <div class="resumen-col">
         <p class="etiqueta">Consumidas</p>
@@ -51,6 +59,16 @@
         <span>Registrar ejercicio</span>
       </button>
 
+      <button class="accion-btn" (click)="abrirModal('habitos')">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 4H20V8H4V4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M4 12H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M4 16H10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M17 12V20M17 12L14 15M17 12L20 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Cambiar dieta y actividad</span>
+      </button>
+
       <button class="accion-btn" (click)="abrirModal('perfil')">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M4 20C4 16.6863 7.58172 14 12 14C16.4183 14 20 16.6863 20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -85,7 +103,7 @@
   </div>
 
   <div class="modal-overlay" *ngIf="modalActivo !== 'ninguno'" (click)="cerrarModal()">
-    <div class="modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-card" [class.modal-card-grande]="modalActivo === 'habitos'" (click)="$event.stopPropagation()">
 
       <ng-container *ngIf="modalActivo === 'comida'">
         <h3>Comida fuera de dieta</h3>
@@ -140,8 +158,71 @@
         </div>
       </ng-container>
 
+      <ng-container *ngIf="modalActivo === 'habitos'">
+        <h3>Dieta y actividad diaria</h3>
+        <p class="modal-subtexto">Esto reemplaza los valores base que usa la app para calcular tu balance diario.</p>
+
+        <div class="seccion-mini">
+          <p class="seccion-mini-titulo">¿Cómo comés normalmente?</p>
+          <div class="opciones">
+            <button
+              *ngFor="let opcion of opcionesComidas"
+              class="opcion"
+              [class.seleccionada]="comidaSeleccionada === opcion.id"
+              (click)="seleccionarComida(opcion.id)"
+            >
+              <span class="opcion-etiqueta">{{ opcion.etiqueta }}</span>
+              <span class="opcion-detalle">{{ opcion.detalle }}</span>
+            </button>
+          </div>
+          <label class="campo" *ngIf="esComidaPersonalizada">
+            <span>Calorías que consumís por día</span>
+            <input type="number" placeholder="Ej: 2000" [(ngModel)]="caloriasComidaPersonalizadaHabito" inputmode="numeric" />
+          </label>
+        </div>
+
+        <div class="seccion-mini">
+          <p class="seccion-mini-titulo">¿Qué tan movido es tu día a día?</p>
+          <div class="opciones">
+            <button
+              *ngFor="let opcion of opcionesActividad"
+              class="opcion"
+              [class.seleccionada]="actividadSeleccionada === opcion.id"
+              (click)="seleccionarActividad(opcion.id)"
+            >
+              <span class="opcion-etiqueta">{{ opcion.etiqueta }}</span>
+              <span class="opcion-detalle">{{ opcion.detalle }}</span>
+            </button>
+          </div>
+          <label class="campo" *ngIf="esActividadPersonalizada">
+            <span>Calorías que quemás por día</span>
+            <input type="number" placeholder="Ej: 2200" [(ngModel)]="caloriasActividadPersonalizadaHabito" inputmode="numeric" />
+          </label>
+        </div>
+
+        <p class="error" *ngIf="error">{{ error }}</p>
+        <div class="modal-botones">
+          <button class="boton-secundario" (click)="cerrarModal()">Cancelar</button>
+          <button class="boton-principal" (click)="confirmarHabitos()">Guardar</button>
+        </div>
+      </ng-container>
+
     </div>
   </div>
 
   <app-bottom-nav></app-bottom-nav>
+
+  <div class="modal-overlay" *ngIf="modalHitoAbierto" (click)="modalHitoAbierto = false">
+    <div class="modal-card hito-modal" (click)="$event.stopPropagation()">
+      <h3>{{ hitoTipo === 'perdido' ? '¡Felicitaciones!' : '¡Progreso registrado!' }}</h3>
+      <p>
+        {{ hitoTipo === 'perdido'
+        ? 'Perdiste 1 kilo desde tu última medición. Vas por buen camino, seguí así.'
+        : 'Ganaste 1 kilo desde tu última medición. Vas por buen camino hacia tu objetivo.' }}
+      </p>
+      <button class="boton-principal" (click)="modalHitoAbierto = false">Genial</button>
+    </div>
+  </div>
+
+
 </div>
